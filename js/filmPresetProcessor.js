@@ -401,41 +401,57 @@ export class FilmPresetProcessor {
 	 * Apply a preset while preserving specified base corrections
 	 * @param {Object} preset - The preset to apply
 	 * @param {Object} corrections - Base corrections to preserve (exposure, contrast, saturation)
+	 * @param {number} intensity - Intensity of the preset effect (0-1)
 	 */
-	applyPresetWithCorrections(preset, corrections) {
+	applyPresetWithCorrections(preset, corrections, intensity = 1.0) {
 		this.currentPreset = preset;
 
-		// Apply preset adjustments but preserve corrections
+		// Apply preset adjustments but preserve corrections, with intensity blending
 		this.currentAdjustments = {
 			// Use preserved correction values
 			exposure: corrections.exposure || 0,
 			contrast: corrections.contrast || 0,
 			saturation: corrections.saturation || 0,
 
-			// Use preset values for creative settings
-			temperature: preset.temperature,
-			grain: preset.grain,
-			vignette: preset.vignette,
+			// Blend preset values for creative settings based on intensity
+			temperature: (preset.temperature || 0) * intensity,
+			grain: (preset.grain || 0) * intensity,
+			vignette: (preset.vignette || 0) * intensity,
 			lutIntensity: this.currentAdjustments.lutIntensity // Preserve LUT intensity
 		};
 
-		// Apply curves
+		// Apply curves with intensity blending
 		if (preset.curves) {
 			if (preset.curves.rgb) {
-				this.updateCurveTexture(this.textures.rgbCurve, createCurveTexture(preset.curves.rgb));
+				const blendedCurve = this.blendCurveWithIntensity(preset.curves.rgb, intensity);
+				this.updateCurveTexture(this.textures.rgbCurve, createCurveTexture(blendedCurve));
 			}
 
 			if (preset.curves.r) {
-				this.updateCurveTexture(this.textures.rCurve, createCurveTexture(preset.curves.r));
+				const blendedCurve = this.blendCurveWithIntensity(preset.curves.r, intensity);
+				this.updateCurveTexture(this.textures.rCurve, createCurveTexture(blendedCurve));
 			}
 
 			if (preset.curves.g) {
-				this.updateCurveTexture(this.textures.gCurve, createCurveTexture(preset.curves.g));
+				const blendedCurve = this.blendCurveWithIntensity(preset.curves.g, intensity);
+				this.updateCurveTexture(this.textures.gCurve, createCurveTexture(blendedCurve));
 			}
 
 			if (preset.curves.b) {
-				this.updateCurveTexture(this.textures.bCurve, createCurveTexture(preset.curves.b));
+				const blendedCurve = this.blendCurveWithIntensity(preset.curves.b, intensity);
+				this.updateCurveTexture(this.textures.bCurve, createCurveTexture(blendedCurve));
 			}
+		} else {
+			// Reset to linear curves when no preset curves
+			const linearCurve = [
+				[0, 0],
+				[128, 128],
+				[255, 255]
+			];
+			this.updateCurveTexture(this.textures.rgbCurve, createCurveTexture(linearCurve));
+			this.updateCurveTexture(this.textures.rCurve, createCurveTexture(linearCurve));
+			this.updateCurveTexture(this.textures.gCurve, createCurveTexture(linearCurve));
+			this.updateCurveTexture(this.textures.bCurve, createCurveTexture(linearCurve));
 		}
 
 		this.render();
@@ -677,5 +693,28 @@ export class FilmPresetProcessor {
 
 		// Re-render without LUT
 		this.render();
+	}
+
+	/**
+	 * Blend a curve with linear based on intensity
+	 * @param {Array} curve - Original curve points
+	 * @param {number} intensity - Blend intensity (0-1)
+	 * @returns {Array} - Blended curve points
+	 */
+	blendCurveWithIntensity(curve, intensity) {
+		if (!curve || intensity === 1.0) return curve;
+		if (intensity === 0.0)
+			return [
+				[0, 0],
+				[128, 128],
+				[255, 255]
+			]; // Linear curve
+
+		// Blend each point between linear and the original curve
+		return curve.map(([input, output]) => {
+			const linearOutput = input; // Linear curve: output = input
+			const blendedOutput = linearOutput + (output - linearOutput) * intensity;
+			return [input, Math.round(Math.max(0, Math.min(255, blendedOutput)))];
+		});
 	}
 }

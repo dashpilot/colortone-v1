@@ -180,6 +180,13 @@ body {
     font-size: 14px;
 }
 
+.preset-button.compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+}
+
 .preset-button:hover {
     background-color: #333;
 }
@@ -188,10 +195,44 @@ body {
     background-color: var(--accent);
 }
 
+.preset-name {
+    font-weight: 500;
+    flex: 1;
+}
+
 .preset-brand {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-dim);
-    margin-top: 4px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 10px;
+    flex-shrink: 0;
+    margin-top: 0;
+}
+
+.preset-button.active .preset-brand {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Sticky Preset Intensity Slider */
+.preset-intensity-sticky {
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-dark);
+    padding: 20px 0 15px 0;
+    margin: -20px 0 15px 0;
+    border-bottom: 1px solid #333;
+    z-index: 10;
+}
+
+.preset-intensity-sticky .slider-group {
+    margin-bottom: 0;
+}
+
+.preset-buttons-container {
+    flex: 1;
+    overflow-y: auto;
 }
 
 .slider-group {

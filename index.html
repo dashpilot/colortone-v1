@@ -233,17 +233,39 @@
 						<!-- Film Presets Tab -->
 						<div class="tab-content" x-show="activeTab === 'presets'">
 							<div class="control-section">
-								<div class="preset-buttons">
-									<template x-for="(preset, index) in presets" :key="index">
-										<button
-											class="preset-button"
-											:class="{'active': selectedPreset === index}"
-											@click="applyPreset(index)"
-										>
-											<div x-text="preset.name"></div>
-											<div class="preset-brand" x-text="preset.brand"></div>
-										</button>
-									</template>
+								<!-- Sticky Preset Intensity Slider -->
+								<div class="preset-intensity-sticky">
+									<div class="slider-group">
+										<div class="slider-label">
+											<span>Preset Intensity</span>
+											<span x-text="presetIntensity.toFixed(2)"></span>
+										</div>
+										<input
+											type="range"
+											class="slider"
+											min="0"
+											max="1"
+											step="0.01"
+											x-model.number="presetIntensity"
+											@input="applyPresetIntensity"
+										/>
+									</div>
+								</div>
+
+								<!-- Scrollable Preset Buttons -->
+								<div class="preset-buttons-container">
+									<div class="preset-buttons">
+										<template x-for="(preset, index) in presets" :key="index">
+											<button
+												class="preset-button compact"
+												:class="{'active': selectedPreset === index}"
+												@click="applyPreset(index)"
+											>
+												<span class="preset-name" x-text="preset.name"></span>
+												<span class="preset-brand" x-text="preset.brand"></span>
+											</button>
+										</template>
+									</div>
 								</div>
 							</div>
 						</div>

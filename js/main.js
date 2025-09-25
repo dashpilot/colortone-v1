@@ -32,6 +32,8 @@ window.filmPresetApp = {
 	// AI Preset properties
 	customPresetJson: '',
 	customPresetStatus: null,
+	// Preset intensity
+	presetIntensity: 1.0,
 
 	init() {
 		// Initialize WebGL processor
@@ -210,7 +212,7 @@ window.filmPresetApp = {
 		const currentSaturation = this.adjustments.saturation;
 		const currentLutIntensity = this.adjustments.lutIntensity;
 
-		// Apply preset adjustments
+		// Apply preset adjustments with intensity
 		const preset = this.presets[index].settings;
 		this.adjustments = {
 			// Preserve auto-balance corrections
@@ -218,10 +220,10 @@ window.filmPresetApp = {
 			contrast: currentContrast,
 			saturation: currentSaturation,
 
-			// Apply preset's creative settings
-			temperature: preset.temperature,
-			grain: preset.grain,
-			vignette: preset.vignette,
+			// Apply preset's creative settings with intensity
+			temperature: (preset.temperature || 0) * this.presetIntensity,
+			grain: (preset.grain || 0) * this.presetIntensity,
+			vignette: (preset.vignette || 0) * this.presetIntensity,
 
 			// Preserve LUT intensity
 			lutIntensity: currentLutIntensity
@@ -229,12 +231,16 @@ window.filmPresetApp = {
 
 		// Process image with preset
 		setTimeout(() => {
-			// Apply preset with preserved corrections
-			this.processor.applyPresetWithCorrections(preset, {
-				exposure: currentExposure,
-				contrast: currentContrast,
-				saturation: currentSaturation
-			});
+			// Apply preset with preserved corrections and intensity
+			this.processor.applyPresetWithCorrections(
+				preset,
+				{
+					exposure: currentExposure,
+					contrast: currentContrast,
+					saturation: currentSaturation
+				},
+				this.presetIntensity
+			);
 			this.renderedImageSrc = this.processor.getOutputImage();
 			this.isProcessing = false;
 		}, 50);
@@ -487,12 +493,16 @@ window.filmPresetApp = {
 						lutIntensity: currentLutIntensity // Preserve LUT intensity
 					};
 
-					// Apply the preset with its original basic adjustments
-					this.processor.applyPresetWithCorrections(settings, {
-						exposure: settings.exposure || 0,
-						contrast: settings.contrast || 0,
-						saturation: settings.saturation || 0
-					});
+					// Apply the preset with its original basic adjustments (custom presets always at full intensity)
+					this.processor.applyPresetWithCorrections(
+						settings,
+						{
+							exposure: settings.exposure || 0,
+							contrast: settings.contrast || 0,
+							saturation: settings.saturation || 0
+						},
+						1.0
+					);
 
 					// Update the rendered image
 					this.renderedImageSrc = this.processor.getOutputImage();
@@ -618,5 +628,47 @@ window.filmPresetApp = {
 	clearCustomPreset() {
 		this.customPresetJson = '';
 		this.customPresetStatus = null;
+	},
+
+	applyPresetIntensity() {
+		if (!this.imageLoaded || this.selectedPreset === null) return;
+
+		// Apply intensity change directly without triggering full preset processing
+		const preset = this.presets[this.selectedPreset].settings;
+
+		// Store the current base corrections (from auto-balance) and LUT intensity
+		const currentExposure = this.adjustments.exposure;
+		const currentContrast = this.adjustments.contrast;
+		const currentSaturation = this.adjustments.saturation;
+		const currentLutIntensity = this.adjustments.lutIntensity;
+
+		// Update adjustments to reflect new intensity
+		this.adjustments = {
+			// Preserve auto-balance corrections
+			exposure: currentExposure,
+			contrast: currentContrast,
+			saturation: currentSaturation,
+
+			// Apply preset's creative settings with new intensity
+			temperature: (preset.temperature || 0) * this.presetIntensity,
+			grain: (preset.grain || 0) * this.presetIntensity,
+			vignette: (preset.vignette || 0) * this.presetIntensity,
+
+			// Preserve LUT intensity
+			lutIntensity: currentLutIntensity
+		};
+
+		// Apply preset with new intensity immediately
+		this.processor.applyPresetWithCorrections(
+			preset,
+			{
+				exposure: currentExposure,
+				contrast: currentContrast,
+				saturation: currentSaturation
+			},
+			this.presetIntensity
+		);
+
+		this.renderedImageSrc = this.processor.getOutputImage();
 	}
 };
