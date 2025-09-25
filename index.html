@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>WebGL Film Preset Color Grading Tool</title>
+		<link rel="stylesheet" href="styles.css" />
+		<link
+			rel="stylesheet"
+			href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+		/>
+	</head>
+	<body>
+		<div class="container" x-data="filmPresetApp">
+			<div class="toolbar">
+				<div class="toolbar-title">Film Preset Color Grading Tool</div>
+				<button class="upload-button" @click="triggerFileInput">Upload Image</button>
+				<input
+					type="file"
+					id="file-input"
+					accept="image/*"
+					@change="handleFileUpload"
+					style="display: none"
+				/>
+			</div>
+
+			<div class="main-area">
+				<div class="image-area">
+					<div x-show="!imageLoaded" class="upload-area" @click="triggerFileInput">
+						<div class="upload-icon">
+							<i class="bi bi-camera"></i>
+						</div>
+						<div class="upload-text">
+							<div>Drag & drop an image here or <strong>click to browse</strong></div>
+							<div style="margin-top: 5px; font-size: 14px">Supported formats: JPG, PNG</div>
+						</div>
+					</div>
+
+					<div id="canvas-container" x-show="imageLoaded">
+						<img id="rendered-image" :src="renderedImageSrc" alt="Rendered image" />
+					</div>
+
+					<div class="loading-indicator" x-show="isProcessing">
+						<div class="spinner"></div>
+						Processing image...
+					</div>
+				</div>
+
+				<div class="sidebar-container" x-show="imageLoaded">
+					<!-- Tab Navigation - Outside scrollable area -->
+					<div class="tab-navigation">
+						<button
+							class="tab-button"
+							:class="{'active': activeTab === 'adjustments'}"
+							@click="activeTab = 'adjustments'"
+						>
+							Controls
+						</button>
+						<button
+							class="tab-button"
+							:class="{'active': activeTab === 'presets'}"
+							@click="activeTab = 'presets'"
+						>
+							Presets
+						</button>
+						<button
+							class="tab-button"
+							:class="{'active': activeTab === 'ai-preset'}"
+							@click="activeTab = 'ai-preset'"
+						>
+							Manual
+						</button>
+					</div>
+
+					<div class="controls-area">
+						<!-- Adjustments Tab -->
+						<div class="tab-content" x-show="activeTab === 'adjustments'">
+							<div class="control-section">
+								<button class="button button-full auto-balance-button" @click="autoBalance">
+									<i class="bi bi-magic auto-balance-icon"></i> Auto Balance
+								</button>
+
+								<!-- LUT Selection -->
+								<div class="lut-section">
+									<div class="lut-header">
+										<span class="lut-label">Custom LUT</span>
+										<button
+											class="lut-clear-button"
+											x-show="selectedLut"
+											@click="clearLut"
+											title="Clear LUT"
+										>
+											<i class="bi bi-x"></i>
+										</button>
+									</div>
+									<div class="lut-controls">
+										<input
+											type="file"
+											id="lut-file-input"
+											accept=".cube"
+											@change="handleLutUpload"
+											style="display: none"
+										/>
+										<button
+											class="lut-upload-button"
+											@click="triggerLutInput"
+											x-show="!selectedLut"
+										>
+											<i class="bi bi-upload"></i> Load LUT (.cube)
+										</button>
+										<div class="lut-info" x-show="selectedLut">
+											<i class="bi bi-file-earmark"></i>
+											<span x-text="selectedLut ? selectedLut.name : ''"></span>
+										</div>
+									</div>
+
+									<!-- LUT Intensity Slider -->
+									<div class="slider-group" x-show="selectedLut">
+										<div class="slider-label">
+											<span>LUT Intensity</span>
+											<span x-text="adjustments.lutIntensity.toFixed(2)"></span>
+										</div>
+										<input
+											type="range"
+											class="slider"
+											min="0"
+											max="1"
+											step="0.01"
+											x-model.number="adjustments.lutIntensity"
+											@input="applyAdjustments"
+										/>
+									</div>
+								</div>
+
+								<div class="slider-group">
+									<div class="slider-label">
+										<span>Exposure</span>
+										<span x-text="adjustments.exposure.toFixed(2)"></span>
+									</div>
+									<input
+										type="range"
+										class="slider"
+										min="-1"
+										max="1"
+										step="0.01"
+										x-model.number="adjustments.exposure"
+										@input="applyAdjustments"
+									/>
+								</div>
+
+								<div class="slider-group">
+									<div class="slider-label">
+										<span>Contrast</span>
+										<span x-text="adjustments.contrast.toFixed(2)"></span>
+									</div>
+									<input
+										type="range"
+										class="slider"
+										min="-1"
+										max="1"
+										step="0.01"
+										x-model.number="adjustments.contrast"
+										@input="applyAdjustments"
+									/>
+								</div>
+
+								<div class="slider-group">
+									<div class="slider-label">
+										<span>Saturation</span>
+										<span x-text="adjustments.saturation.toFixed(2)"></span>
+									</div>
+									<input
+										type="range"
+										class="slider"
+										min="-1"
+										max="1"
+										step="0.01"
+										x-model.number="adjustments.saturation"
+										@input="applyAdjustments"
+									/>
+								</div>
+
+								<div class="slider-group">
+									<div class="slider-label">
+										<span>Temperature</span>
+										<span x-text="adjustments.temperature.toFixed(2)"></span>
+									</div>
+									<input
+										type="range"
+										class="slider"
+										min="-1"
+										max="1"
+										step="0.01"
+										x-model.number="adjustments.temperature"
+										@input="applyAdjustments"
+									/>
+								</div>
+
+								<div class="slider-group">
+									<div class="slider-label">
+										<span>Grain</span>
+										<span x-text="adjustments.grain.toFixed(2)"></span>
+									</div>
+									<input
+										type="range"
+										class="slider"
+										min="0"
+										max="1"
+										step="0.01"
+										x-model.number="adjustments.grain"
+										@input="applyAdjustments"
+									/>
+								</div>
+
+								<div class="slider-group">
+									<div class="slider-label">
+										<span>Vignette</span>
+										<span x-text="adjustments.vignette.toFixed(2)"></span>
+									</div>
+									<input
+										type="range"
+										class="slider"
+										min="0"
+										max="1"
+										step="0.01"
+										x-model.number="adjustments.vignette"
+										@input="applyAdjustments"
+									/>
+								</div>
+							</div>
+						</div>
+
+						<!-- Film Presets Tab -->
+						<div class="tab-content" x-show="activeTab === 'presets'">
+							<div class="control-section">
+								<div class="preset-buttons">
+									<template x-for="(preset, index) in presets" :key="index">
+										<button
+											class="preset-button"
+											:class="{'active': selectedPreset === index}"
+											@click="applyPreset(index)"
+										>
+											<div x-text="preset.name"></div>
+											<div class="preset-brand" x-text="preset.brand"></div>
+										</button>
+									</template>
+								</div>
+							</div>
+						</div>
+
+						<!-- AI Preset Tab -->
+						<div class="tab-content" x-show="activeTab === 'ai-preset'">
+							<div class="control-section">
+								<div class="ai-preset-section">
+									<div class="ai-preset-header">
+										<h4>Custom JSON Preset</h4>
+										<p class="ai-preset-description">
+											Paste a preset JSON below and click Apply to test it on your image.
+										</p>
+									</div>
+
+									<div class="json-input-container">
+										<label for="json-input" class="json-input-label">Preset JSON:</label>
+										<textarea
+											id="json-input"
+											class="json-input"
+											x-model="customPresetJson"
+											placeholder='{
+  "name": "My Custom Preset",
+  "brand": "Custom",
+  "settings": {
+    "exposure": 0.1,
+    "contrast": 0.2,
+    "saturation": 0.1,
+    "temperature": 0.0,
+    "grain": 0.2,
+    "vignette": 0.1,
+    "curves": {
+      "rgb": [[0, 0], [128, 128], [255, 255]],
+      "r": [[0, 0], [128, 128], [255, 255]],
+      "g": [[0, 0], [128, 128], [255, 255]],
+      "b": [[0, 0], [128, 128], [255, 255]]
+    }
+  }
+}'
+											rows="12"
+										></textarea>
+									</div>
+
+									<div class="ai-preset-actions">
+										<button
+											class="button button-primary ai-apply-button"
+											@click="applyCustomPreset"
+											:disabled="!customPresetJson.trim()"
+										>
+											<i class="bi bi-magic"></i> Apply Preset
+										</button>
+										<button class="button button-secondary" @click="clearCustomPreset">
+											Clear
+										</button>
+									</div>
+
+									<div class="ai-preset-status" x-show="customPresetStatus">
+										<div
+											class="status-message"
+											:class="customPresetStatus?.type"
+											x-text="customPresetStatus?.message"
+										></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Action Buttons - Outside scrollable area -->
+					<div class="button-row">
+						<button class="button button-primary" @click="saveImage">Save Image</button>
+						<button class="button button-secondary" @click="resetAdjustments">Reset</button>
+						<button class="button button-secondary" @click="openLutExportModal">Export LUT</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- LUT Export Modal -->
+			<div class="modal" x-show="showLutModal" x-transition>
+				<div class="modal-content">
+					<div class="modal-header">
+						<h3>Export 3D LUT</h3>
+						<button class="close-button" @click="showLutModal = false">&times;</button>
+					</div>
+					<div class="modal-body">
+						<div class="form-group">
+							<label for="lut-name">LUT Name:</label>
+							<input type="text" id="lut-name" x-model="lutName" placeholder="MyFilmLUT" />
+						</div>
+						<div class="form-group">
+							<label for="lut-size">LUT Size:</label>
+							<select id="lut-size" x-model="lutSize">
+								<option value="17">17x17x17 (Standard)</option>
+								<option value="33">33x33x33 (High Quality)</option>
+								<option value="65">65x65x65 (Pro)</option>
+							</select>
+						</div>
+					</div>
+					<div class="modal-footer">
+						<button class="button button-secondary" @click="showLutModal = false">Cancel</button>
+						<button class="button button-primary" @click="exportLUT">Export</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- JS scripts - main.js first, then Alpine.js -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/pica/9.0.1/pica.min.js"></script>
+		<script type="module" src="js/main.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.10.5/cdn.min.js" defer></script>
+	</body>
+</html>
