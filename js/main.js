@@ -281,21 +281,46 @@ window.filmPresetApp = {
 		}
 	},
 
+	// Helper function to generate descriptive names
+	generateFileName(baseType = 'image') {
+		let nameParts = [];
+
+		// Add LUT name first if one is loaded
+		if (this.selectedLut && this.selectedLut.name) {
+			nameParts.push(this.selectedLut.name.replace(/\s+/g, '-'));
+		}
+
+		// Add preset name second if one is selected
+		if (this.selectedPreset !== null) {
+			const preset = this.presets[this.selectedPreset];
+			nameParts.push(`${preset.brand}-${preset.name}`.replace(/\s+/g, '-'));
+		}
+
+		// If no preset or LUT, use "Custom"
+		if (nameParts.length === 0) {
+			nameParts.push('Custom');
+		}
+
+		// Add base type
+		nameParts.push(baseType);
+
+		// Join main parts with underscores, but keep hyphens within individual names
+		return nameParts.join('_');
+	},
+
 	saveImage() {
 		if (!this.renderedImageSrc) return;
 
+		const fileName = this.generateFileName('image');
 		const link = document.createElement('a');
-		link.download = 'film-graded-image.jpg';
+		link.download = `${fileName}.jpg`;
 		link.href = this.renderedImageSrc;
 		link.click();
 	},
 
 	openLutExportModal() {
-		// If a preset is selected, use its name as default LUT name
-		if (this.selectedPreset !== null) {
-			const preset = this.presets[this.selectedPreset];
-			this.lutName = `${preset.brand}_${preset.name}`.replace(/\s+/g, '_');
-		}
+		// Generate a descriptive default LUT name based on current settings
+		this.lutName = this.generateFileName('LUT');
 		this.showLutModal = true;
 	},
 
@@ -309,7 +334,15 @@ window.filmPresetApp = {
 		setTimeout(() => {
 			try {
 				const size = parseInt(this.lutSize);
-				exportLUT(this.processor, size, this.lutName);
+
+				// Create additional metadata for the LUT
+				const metadata = {
+					preset: this.selectedPreset !== null ? this.presets[this.selectedPreset] : null,
+					lut: this.selectedLut,
+					intensity: this.presetIntensity
+				};
+
+				exportLUT(this.processor, size, this.lutName, metadata);
 				this.showLutModal = false;
 			} catch (error) {
 				console.error('Error exporting LUT:', error);
