@@ -80,6 +80,27 @@
 									<i class="bi bi-magic auto-balance-icon"></i> Auto Balance
 								</button>
 
+								<button
+									class="button button-full random-grade-button"
+									@click="generateRandomColorGrade"
+									:disabled="isProcessing"
+								>
+									<span x-show="!isProcessing">
+										<i class="bi bi-shuffle auto-balance-icon"></i> Random Grade
+									</span>
+									<span x-show="isProcessing" class="processing-text">
+										<div class="spinner"></div>
+										Generating...
+									</span>
+								</button>
+
+								<!-- Display random grade name -->
+								<div
+									class="random-grade-name"
+									x-show="randomGradeName"
+									x-text="randomGradeName"
+								></div>
+
 								<!-- LUT Selection -->
 								<div class="lut-section">
 									<div class="lut-header">

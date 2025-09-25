@@ -1,7 +1,7 @@
 // main.js - Main application entry point
 import { FilmPresetProcessor } from './filmPresetProcessor.js';
 import { presets } from './presets.js';
-import { setupDragAndDrop } from './utils.js';
+import { setupDragAndDrop, createCurveTexture } from './utils.js';
 import { exportLUT } from './lutExporter.js';
 import { autoBalanceImage } from './autoBalance.js';
 import { LutParser } from './lutParser.js';
@@ -34,6 +34,8 @@ window.filmPresetApp = {
 	customPresetStatus: null,
 	// Preset intensity
 	presetIntensity: 1.0,
+	// Random grade name
+	randomGradeName: null,
 
 	init() {
 		// Initialize WebGL processor
@@ -205,6 +207,7 @@ window.filmPresetApp = {
 
 		this.isProcessing = true;
 		this.selectedPreset = index;
+		this.randomGradeName = null; // Clear random grade name when applying preset
 
 		// Store the current base corrections (from auto-balance) and LUT intensity
 		const currentExposure = this.adjustments.exposure;
@@ -276,6 +279,7 @@ window.filmPresetApp = {
 
 		if (this.imageLoaded) {
 			this.selectedPreset = null;
+			this.randomGradeName = null; // Clear random grade name when resetting
 			this.processor.resetAdjustments();
 			this.renderedImageSrc = this.processor.getOutputImage();
 		}
@@ -296,7 +300,12 @@ window.filmPresetApp = {
 			nameParts.push(`${preset.brand}-${preset.name}`.replace(/\s+/g, '-'));
 		}
 
-		// If no preset or LUT, use "Custom"
+		// Add random grade name if one is generated
+		if (this.randomGradeName) {
+			nameParts.push(this.randomGradeName);
+		}
+
+		// If no preset, LUT, or random grade, use "Custom"
 		if (nameParts.length === 0) {
 			nameParts.push('Custom');
 		}
@@ -703,5 +712,207 @@ window.filmPresetApp = {
 		);
 
 		this.renderedImageSrc = this.processor.getOutputImage();
+	},
+
+	// Random grade generator - creates names based on color relationships
+	generateColorConnectedGradeName(colorPair) {
+		// Define color-specific descriptors based on hue ranges
+		const getColorDescriptor = (hue) => {
+			if (hue >= 0 && hue < 30) return { color: 'Crimson', temp: 'warm' };
+			if (hue >= 30 && hue < 60) return { color: 'Amber', temp: 'warm' };
+			if (hue >= 60 && hue < 90) return { color: 'Golden', temp: 'warm' };
+			if (hue >= 90 && hue < 150) return { color: 'Emerald', temp: 'cool' };
+			if (hue >= 150 && hue < 210) return { color: 'Cyan', temp: 'cool' };
+			if (hue >= 210 && hue < 270) return { color: 'Azure', temp: 'cool' };
+			if (hue >= 270 && hue < 330) return { color: 'Violet', temp: 'cool' };
+			return { color: 'Rose', temp: 'warm' }; // 330-360
+		};
+
+		const shadowColor = getColorDescriptor(colorPair.shadowHue);
+		const midtoneColor = getColorDescriptor(colorPair.midtoneHue);
+
+		// Create descriptive names based on color relationships
+		const colorCombinations = {
+			'warm-cool': [
+				`${shadowColor.color}-${midtoneColor.color}`,
+				`Sunset-${midtoneColor.color}`,
+				`${shadowColor.color}-Twilight`,
+				`Warm-${midtoneColor.color}`,
+				`${shadowColor.color}-Frost`
+			],
+			'cool-warm': [
+				`${shadowColor.color}-${midtoneColor.color}`,
+				`${shadowColor.color}-Dawn`,
+				`Midnight-${midtoneColor.color}`,
+				`${shadowColor.color}-Fire`,
+				`Ice-${midtoneColor.color}`
+			],
+			'warm-warm': [
+				`${shadowColor.color}-${midtoneColor.color}`,
+				`Desert-${midtoneColor.color}`,
+				`${shadowColor.color}-Sunset`,
+				`Autumn-${midtoneColor.color}`,
+				`${shadowColor.color}-Glow`
+			],
+			'cool-cool': [
+				`${shadowColor.color}-${midtoneColor.color}`,
+				`${shadowColor.color}-Storm`,
+				`Ocean-${midtoneColor.color}`,
+				`${shadowColor.color}-Mist`,
+				`Winter-${midtoneColor.color}`
+			]
+		};
+
+		// Determine the temperature relationship
+		const tempKey = `${shadowColor.temp}-${midtoneColor.temp}`;
+		const nameOptions = colorCombinations[tempKey] || colorCombinations['warm-cool'];
+
+		// Add some cinematic modifiers
+		const modifiers = ['Cinematic', 'Vintage', 'Moody', 'Dreamy', 'Epic', 'Noir'];
+		const useModifier = Math.random() < 0.3; // 30% chance of modifier
+
+		let finalName = nameOptions[Math.floor(Math.random() * nameOptions.length)];
+
+		if (useModifier) {
+			const modifier = modifiers[Math.floor(Math.random() * modifiers.length)];
+			finalName = `${modifier}-${finalName}`;
+		}
+
+		return finalName;
+	},
+
+	generateRandomColorGrade() {
+		if (!this.imageLoaded || !this.processor) return;
+
+		// Show processing state
+		this.isProcessing = true;
+
+		// Use setTimeout to add a slight delay and allow UI to update
+		setTimeout(() => {
+			try {
+				// Clear any selected preset
+				this.selectedPreset = null;
+
+				// Generate complementary color pairs for shadows and midtones
+				const colorPairs = [
+					// Warm shadows, cool midtones
+					{ shadowHue: 30, midtoneHue: 210 }, // Orange/Blue
+					{ shadowHue: 45, midtoneHue: 225 }, // Yellow-Orange/Blue
+					{ shadowHue: 15, midtoneHue: 195 }, // Red-Orange/Cyan
+
+					// Cool shadows, warm midtones
+					{ shadowHue: 240, midtoneHue: 60 }, // Blue/Yellow
+					{ shadowHue: 210, midtoneHue: 30 }, // Cyan/Orange
+					{ shadowHue: 270, midtoneHue: 90 }, // Purple/Green
+
+					// Analogous but contrasting
+					{ shadowHue: 300, midtoneHue: 60 }, // Magenta/Yellow
+					{ shadowHue: 180, midtoneHue: 0 }, // Cyan/Red
+					{ shadowHue: 120, midtoneHue: 300 } // Green/Magenta
+				];
+
+				const selectedPair = colorPairs[Math.floor(Math.random() * colorPairs.length)];
+
+				// Generate color-connected grade name based on the selected color pair
+				this.randomGradeName = this.generateColorConnectedGradeName(selectedPair);
+
+				// Create curves with color theory-based adjustments
+				const curves = this.createColorTheoryCurves(selectedPair);
+
+				// Apply only the curves to the processor - no basic adjustments
+				this.processor.updateCurveTexture(
+					this.processor.textures.rgbCurve,
+					createCurveTexture(curves.rgb)
+				);
+				this.processor.updateCurveTexture(
+					this.processor.textures.rCurve,
+					createCurveTexture(curves.r)
+				);
+				this.processor.updateCurveTexture(
+					this.processor.textures.gCurve,
+					createCurveTexture(curves.g)
+				);
+				this.processor.updateCurveTexture(
+					this.processor.textures.bCurve,
+					createCurveTexture(curves.b)
+				);
+
+				// Render the image with only curve changes
+				this.processor.render();
+				this.renderedImageSrc = this.processor.getOutputImage();
+			} catch (error) {
+				console.error('Error generating random grade:', error);
+			} finally {
+				// Hide processing state
+				this.isProcessing = false;
+			}
+		}, 800); // 800ms delay for nice UX
+	},
+
+	createColorTheoryCurves(colorPair) {
+		const { shadowHue, midtoneHue } = colorPair;
+
+		// Convert hue to RGB adjustments
+		const shadowColor = this.hueToRgbAdjustment(shadowHue);
+		const midtoneColor = this.hueToRgbAdjustment(midtoneHue);
+
+		// Intensity factors
+		const shadowIntensity = 0.15 + Math.random() * 0.15; // 0.15-0.3
+		const midtoneIntensity = 0.1 + Math.random() * 0.1; // 0.1-0.2
+
+		// Create curves that affect shadows and midtones differently
+		// Shadows: 0-85, Midtones: 85-170, Highlights: 170-255 (left untouched)
+		const curves = {
+			rgb: [
+				[0, 0],
+				[85, 85],
+				[170, 170],
+				[255, 255]
+			], // Neutral RGB curve
+			r: [
+				[0, Math.max(0, Math.min(85, shadowColor.r * shadowIntensity))],
+				[85, 85 + midtoneColor.r * midtoneIntensity],
+				[170, 170],
+				[255, 255]
+			],
+			g: [
+				[0, Math.max(0, Math.min(85, shadowColor.g * shadowIntensity))],
+				[85, 85 + midtoneColor.g * midtoneIntensity],
+				[170, 170],
+				[255, 255]
+			],
+			b: [
+				[0, Math.max(0, Math.min(85, shadowColor.b * shadowIntensity))],
+				[85, 85 + midtoneColor.b * midtoneIntensity],
+				[170, 170],
+				[255, 255]
+			]
+		};
+
+		// Ensure all curve values are within valid range
+		['r', 'g', 'b'].forEach((channel) => {
+			curves[channel] = curves[channel].map(([input, output]) => [
+				input,
+				Math.max(0, Math.min(255, Math.round(output)))
+			]);
+		});
+
+		return curves;
+	},
+
+	hueToRgbAdjustment(hue) {
+		// Convert hue (0-360) to RGB color adjustment values
+		const rad = (hue * Math.PI) / 180;
+
+		// Generate RGB values based on hue
+		const r = Math.cos(rad) * 127 + 128;
+		const g = Math.cos(rad + (2 * Math.PI) / 3) * 127 + 128;
+		const b = Math.cos(rad + (4 * Math.PI) / 3) * 127 + 128;
+
+		return {
+			r: r - 128, // Convert to adjustment values (-128 to +127)
+			g: g - 128,
+			b: b - 128
+		};
 	}
 };
