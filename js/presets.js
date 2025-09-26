@@ -1032,5 +1032,91 @@ export const presets = [
 				]
 			}
 		}
+	},
+
+	// Professional Camera Color Science
+	{
+		name: 'RED Color Science',
+		brand: 'RED',
+		settings: {
+			exposure: 0.05,
+			contrast: 0.15,
+			saturation: 0.1,
+			temperature: 0.05,
+			grain: 0.1,
+			vignette: 0.1,
+			curves: {
+				rgb: [
+					[0, 8],
+					[64, 58],
+					[128, 125],
+					[192, 200],
+					[255, 248]
+				],
+				r: [
+					[0, 12],
+					[64, 65],
+					[128, 135],
+					[192, 205],
+					[255, 250]
+				],
+				g: [
+					[0, 8],
+					[64, 60],
+					[128, 128],
+					[192, 198],
+					[255, 245]
+				],
+				b: [
+					[0, 5],
+					[64, 55],
+					[128, 120],
+					[192, 190],
+					[255, 240]
+				]
+			}
+		}
+	},
+	{
+		name: 'Blackmagic Color Science',
+		brand: 'Blackmagic',
+		settings: {
+			exposure: 0.02,
+			contrast: 0.2,
+			saturation: 0.05,
+			temperature: -0.05,
+			grain: 0.05,
+			vignette: 0.05,
+			curves: {
+				rgb: [
+					[0, 5],
+					[64, 55],
+					[128, 130],
+					[192, 205],
+					[255, 250]
+				],
+				r: [
+					[0, 8],
+					[64, 62],
+					[128, 138],
+					[192, 210],
+					[255, 252]
+				],
+				g: [
+					[0, 5],
+					[64, 58],
+					[128, 132],
+					[192, 208],
+					[255, 248]
+				],
+				b: [
+					[0, 3],
+					[64, 50],
+					[128, 125],
+					[192, 200],
+					[255, 245]
+				]
+			}
+		}
 	}
 ];
