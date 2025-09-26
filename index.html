@@ -271,6 +271,22 @@
 											@input="applyPresetIntensity"
 										/>
 									</div>
+
+									<!-- Bypass Preset Contrast -->
+									<div class="checkbox-group">
+										<label class="checkbox-label">
+											<input
+												type="checkbox"
+												x-model="bypassPresetContrast"
+												@change="applyPresetIntensity"
+												class="checkbox-input"
+											/>
+											<span class="checkbox-text">Bypass Preset Contrast</span>
+										</label>
+										<div class="checkbox-description">
+											Skip contrast adjustments for log footage
+										</div>
+									</div>
 								</div>
 
 								<!-- Scrollable Preset Buttons -->

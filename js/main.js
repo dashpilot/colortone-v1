@@ -36,6 +36,8 @@ window.filmPresetApp = {
 	presetIntensity: 1.0,
 	// Random grade name
 	randomGradeName: null,
+	// Bypass preset contrast
+	bypassPresetContrast: false,
 
 	init() {
 		// Initialize WebGL processor
@@ -234,9 +236,18 @@ window.filmPresetApp = {
 
 		// Process image with preset
 		setTimeout(() => {
+			// Create preset copy and modify contrast if bypassed
+			const presetToApply = { ...preset };
+			if (this.bypassPresetContrast) {
+				console.log('Bypassing preset contrast. Original:', preset.contrast);
+				presetToApply.contrast = 0; // Bypass preset's contrast
+			} else {
+				console.log('Using preset contrast:', preset.contrast);
+			}
+
 			// Apply preset with preserved corrections and intensity
 			this.processor.applyPresetWithCorrections(
-				preset,
+				presetToApply,
 				{
 					exposure: currentExposure,
 					contrast: currentContrast,
@@ -700,9 +711,18 @@ window.filmPresetApp = {
 			lutIntensity: currentLutIntensity
 		};
 
+		// Create preset copy and modify contrast if bypassed
+		const presetToApply = { ...preset };
+		if (this.bypassPresetContrast) {
+			console.log('Bypassing preset contrast (intensity). Original:', preset.contrast);
+			presetToApply.contrast = 0; // Bypass preset's contrast
+		} else {
+			console.log('Using preset contrast (intensity):', preset.contrast);
+		}
+
 		// Apply preset with new intensity immediately
 		this.processor.applyPresetWithCorrections(
-			preset,
+			presetToApply,
 			{
 				exposure: currentExposure,
 				contrast: currentContrast,

@@ -410,7 +410,11 @@ export class FilmPresetProcessor {
 		this.currentAdjustments = {
 			// Use preserved correction values
 			exposure: corrections.exposure || 0,
-			contrast: corrections.contrast || 0,
+			// Apply preset contrast blended with intensity, or use corrections if preset contrast is 0 (bypassed)
+			contrast:
+				preset.contrast !== undefined && preset.contrast !== 0
+					? corrections.contrast + preset.contrast * intensity
+					: corrections.contrast || 0,
 			saturation: corrections.saturation || 0,
 
 			// Blend preset values for creative settings based on intensity
